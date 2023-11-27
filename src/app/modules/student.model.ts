@@ -6,8 +6,6 @@ import {
   StudentModel,
   TUserName,
 } from './student/student.interface';
-import bcrypt from 'bcrypt';
-import config from '../config';
 
 const userNameSchema = new Schema<TUserName>({
   firstName: {
@@ -80,11 +78,11 @@ const studentSchema = new Schema<TStudent, StudentModel>(
       unique: true,
       default: () => new Types.ObjectId().toString(),
     },
-    password: {
-      type: String,
-      required: [true, 'Password is required'],
-
-      maxlength: [20, 'Password can not be more than 20 characters'],
+    user: {
+      type: Schema.Types.ObjectId,
+      required: [true, 'User Id is required'],
+      unique: true,
+      ref: 'User',
     },
     name: {
       type: userNameSchema,
@@ -137,7 +135,7 @@ const studentSchema = new Schema<TStudent, StudentModel>(
       required: [true, 'Local Guardian details are required'],
     },
     profileImg: { type: String },
-    isActive: { type: String, enum: ['active', 'blocked'], default: 'active' },
+
     isDeleted: { type: Boolean, default: false },
   },
   {
@@ -150,27 +148,6 @@ const studentSchema = new Schema<TStudent, StudentModel>(
 // //// virtual
 studentSchema.virtual('fullname').get(function () {
   return `${this.name.firstName}  ${this.name.middleName}  ${this.name.lastName} `;
-});
-
-// ////pre save middleware/ hook :will work on create() save()
-studentSchema.pre('save', async function (next) {
-  // console.log(this, 'pre hook: we will save data');
-
-  // //// hashing password save into data
-  // eslint-disable-next-line @typescript-eslint/no-this-alias
-  const user = this;
-  user.password = await bcrypt.hash(
-    user.password,
-    Number(config.bcrypt_salt_rounds),
-  );
-  next();
-});
-
-// ////post save middleware/ hook
-studentSchema.post('save', function (doc, next) {
-  doc.password = '';
-
-  next();
 });
 
 // ////Query middleware
